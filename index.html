@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Zeluvill — Keep your photos burning bright</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --black: #0c0906;
+    --char: #171009;
+    --surface: #201509;
+    --surface-2: #2a1a0d;
+    --ember-red: #e8341c;
+    --ember-orange: #ff7a29;
+    --ember-gold: #ffb020;
+    --cream: #f5ede3;
+    --ash: #9c8a7c;
+    --line: rgba(245,237,227,0.09);
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html{scroll-behavior:smooth;}
+  body{
+    background: var(--black);
+    color: var(--cream);
+    font-family:'Space Grotesk', sans-serif;
+    min-height:100vh;
+    position:relative;
+    overflow-x:hidden;
+  }
+
+  /* ambient ember glow background */
+  body::before{
+    content:"";
+    position:fixed;
+    inset:0;
+    background:
+      radial-gradient(circle at 15% 10%, rgba(232,52,28,0.16), transparent 45%),
+      radial-gradient(circle at 85% 25%, rgba(255,122,41,0.12), transparent 40%),
+      radial-gradient(circle at 50% 100%, rgba(255,176,32,0.08), transparent 50%);
+    pointer-events:none;
+    z-index:0;
+  }
+
+  header{
+    position:sticky; top:0; z-index:50;
+    display:flex; align-items:center; justify-content:space-between;
+    padding: 22px 5%;
+    background: rgba(12,9,6,0.75);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--line);
+  }
+  .logo{
+    font-family:'Archivo Black', sans-serif;
+    font-size: 22px;
+    letter-spacing: 0.5px;
+    background: linear-gradient(90deg, var(--ember-gold), var(--ember-orange) 55%, var(--ember-red));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .logo span{ color: var(--ash); font-family:'JetBrains Mono', monospace; font-size:11px; -webkit-text-fill-color: var(--ash); display:block; letter-spacing:2px; margin-top:2px;}
+  nav{display:flex; gap:28px; align-items:center;}
+  nav a{color:var(--ash); text-decoration:none; font-size:14px; transition:color .2s;}
+  nav a:hover{color:var(--cream);}
+  .count-pill{
+    font-family:'JetBrains Mono', monospace;
+    font-size:12px;
+    color:var(--ember-gold);
+    border:1px solid rgba(255,176,32,0.35);
+    padding:6px 12px;
+    border-radius:20px;
+    background: rgba(255,176,32,0.06);
+  }
+
+  main{position:relative; z-index:1;}
+
+  .hero{
+    padding: 64px 5% 40px;
+    max-width:1200px;
+    margin:0 auto;
+    text-align:center;
+  }
+  .eyebrow{
+    font-family:'JetBrains Mono', monospace;
+    font-size:12px;
+    letter-spacing:3px;
+    color:var(--ember-orange);
+    text-transform:uppercase;
+    margin-bottom:18px;
+  }
+  h1{
+    font-family:'Archivo Black', sans-serif;
+    font-size: clamp(34px, 6vw, 68px);
+    line-height:1.05;
+    letter-spacing:-1px;
+    margin-bottom:18px;
+  }
+  h1 .glow{
+    background: linear-gradient(90deg, var(--ember-red), var(--ember-orange), var(--ember-gold));
+    -webkit-background-clip:text; background-clip:text; color:transparent;
+  }
+  .sub{
+    color:var(--ash);
+    font-size:16px;
+    max-width:520px;
+    margin:0 auto 44px;
+    line-height:1.6;
+  }
+
+  /* dropzone — the signature element */
+  .dropzone{
+    max-width:760px;
+    margin: 0 auto;
+    border: 2px dashed rgba(255,122,41,0.35);
+    border-radius:18px;
+    padding: 56px 24px;
+    position:relative;
+    background: linear-gradient(180deg, rgba(255,122,41,0.04), rgba(232,52,28,0.02));
+    cursor:pointer;
+    transition: border-color .25s, background .25s, transform .15s;
+    overflow:hidden;
+  }
+  .dropzone::after{
+    content:"";
+    position:absolute; inset:0;
+    background: radial-gradient(circle at 50% 120%, rgba(255,176,32,0.25), transparent 60%);
+    opacity:0;
+    transition: opacity .3s;
+  }
+  .dropzone:hover, .dropzone.drag{
+    border-color: var(--ember-gold);
+    transform: translateY(-2px);
+  }
+  .dropzone.drag::after, .dropzone:hover::after{opacity:1;}
+  .ember-icon{
+    width:56px; height:56px;
+    margin: 0 auto 18px;
+    position:relative;
+    z-index:1;
+  }
+  .ember-icon svg{width:100%; height:100%;}
+  .drop-text{ font-size:17px; font-weight:600; margin-bottom:6px; position:relative; z-index:1;}
+  .drop-sub{ font-size:13px; color:var(--ash); position:relative; z-index:1;}
+  .drop-sub b{color:var(--ember-orange); font-weight:600;}
+  input[type=file]{display:none;}
+
+  /* coal particles */
+  .coal{
+    position:absolute;
+    bottom:-6px;
+    width:4px; height:4px;
+    border-radius:50%;
+    background: var(--ember-gold);
+    opacity:0;
+    filter: blur(0.3px);
+    animation: rise 2.4s ease-in infinite;
+  }
+  @keyframes rise{
+    0%{ opacity:0; transform: translateY(0) scale(1);}
+    15%{opacity:0.9;}
+    100%{ opacity:0; transform: translateY(-140px) scale(0.4);}
+  }
+
+  section.gallery-section{
+    max-width:1280px;
+    margin: 0 auto;
+    padding: 20px 5% 100px;
+  }
+  .gallery-head{
+    display:flex; align-items:baseline; justify-content:space-between;
+    margin-bottom:24px;
+    flex-wrap:wrap;
+    gap:12px;
+    border-bottom:1px solid var(--line);
+    padding-bottom:16px;
+  }
+  .gallery-head h2{
+    font-family:'Archivo Black', sans-serif;
+    font-size:20px;
+    letter-spacing:0.5px;
+  }
+  .gallery-actions{display:flex; gap:10px;}
+  .btn{
+    font-family:'Space Grotesk', sans-serif;
+    font-size:13px;
+    font-weight:600;
+    padding:9px 16px;
+    border-radius:8px;
+    border:1px solid var(--line);
+    background: var(--surface);
+    color: var(--cream);
+    cursor:pointer;
+    transition: all .18s;
+  }
+  .btn:hover{ border-color: var(--ember-orange); color: var(--ember-gold);}
+  .btn.primary{
+    background: linear-gradient(90deg, var(--ember-red), var(--ember-orange));
+    border:none; color:#0c0906;
+  }
+  .btn.primary:hover{ filter:brightness(1.1); color:#0c0906;}
+  .btn.danger:hover{ border-color: var(--ember-red); color: var(--ember-red);}
+
+  .empty-state{
+    text-align:center;
+    padding: 70px 20px;
+    color: var(--ash);
+    border: 1px dashed var(--line);
+    border-radius:16px;
+  }
+  .empty-state .glyph{ font-size:34px; margin-bottom:14px; opacity:0.6;}
+  .empty-state p{font-size:14px; max-width:340px; margin:0 auto;}
+
+  .grid{
+    display:grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap:16px;
+  }
+  .card{
+    position:relative;
+    border-radius:14px;
+    overflow:hidden;
+    background: var(--surface);
+    border:1px solid var(--line);
+    aspect-ratio: 1 / 1;
+    opacity:0;
+    transform: translateY(14px) scale(0.97);
+    animation: ignite .5s ease forwards;
+  }
+  @keyframes ignite{
+    to{ opacity:1; transform: translateY(0) scale(1);}
+  }
+  .card img{
+    width:100%; height:100%; object-fit:cover;
+    display:block;
+    transition: transform .35s ease;
+  }
+  .card:hover img{ transform: scale(1.06);}
+  .card-overlay{
+    position:absolute; inset:0;
+    background: linear-gradient(180deg, transparent 50%, rgba(12,9,6,0.9));
+    opacity:0;
+    transition: opacity .2s;
+    display:flex; align-items:flex-end;
+    padding:12px;
+    gap:8px;
+  }
+  .card:hover .card-overlay{opacity:1;}
+  .card-name{
+    font-size:12px;
+    color:var(--cream);
+    flex:1;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+    font-family:'JetBrains Mono', monospace;
+  }
+  .icon-btn{
+    width:30px; height:30px;
+    border-radius:7px;
+    border:1px solid rgba(245,237,227,0.2);
+    background: rgba(12,9,6,0.6);
+    color: var(--cream);
+    display:flex; align-items:center; justify-content:center;
+    cursor:pointer;
+    font-size:14px;
+    flex-shrink:0;
+    transition: all .15s;
+  }
+  .icon-btn:hover{ background: var(--ember-red); border-color: var(--ember-red);}
+
+  footer{
+    text-align:center;
+    padding: 30px 5px 40px;
+    color: var(--ash);
+    font-size:12px;
+    border-top:1px solid var(--line);
+    font-family:'JetBrains Mono', monospace;
+    letter-spacing:0.5px;
+  }
+  footer b{ color: var(--ember-orange); font-weight:500;}
+
+  @media (max-width:560px){
+    header{padding:16px 4%;}
+    nav a{display:none;}
+    .dropzone{padding:40px 16px;}
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    *{animation:none !important; transition:none !important;}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">ZELUVILL<span>PHOTO KEEP</span></div>
+  <nav>
+    <a href="#gallery">Gallery</a>
+    <a href="#" id="jumpUpload">Upload</a>
+    <span class="count-pill" id="photoCount">0 photos</span>
+  </nav>
+</header>
+
+<main>
+  <section class="hero">
+    <div class="eyebrow">Your photos, kept close</div>
+    <h1>Every memory,<br><span class="glow">still burning.</span></h1>
+    <p class="sub">Zeluvill is a warm little vault for the pictures you don't want to lose. Drop them in, and they stay lit — right here in this session.</p>
+
+    <div class="dropzone" id="dropzone">
+      <div class="ember-icon">
+        <svg viewBox="0 0 24 24" fill="none">
+          <defs>
+            <linearGradient id="flameGrad" x1="0" y1="1" x2="0" y2="0">
+              <stop offset="0%" stop-color="#e8341c"/>
+              <stop offset="55%" stop-color="#ff7a29"/>
+              <stop offset="100%" stop-color="#ffb020"/>
+            </linearGradient>
+          </defs>
+          <path d="M12 2C12 2 7 8.5 7 13.5C7 17.09 9.24 20 12 20C14.76 20 17 17.09 17 13.5C17 12.5 16.8 11.5 16.4 10.6C15.9 12 15 12.8 15 12.8C15.4 10 13.5 7.5 12 5.5C12.5 8 11 9 10.2 10.5C9.7 11.4 9.5 12.5 9.5 13.3C9.5 14.7 10.5 15.8 12 15.8C13 15.8 13.8 15.1 13.8 14.1C13.8 13.3 13.2 12.8 13.2 12.8" stroke="url(#flameGrad)" stroke-width="1.4" fill="url(#flameGrad)" fill-opacity="0.15" stroke-linejoin="round" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div class="drop-text">Drag photos here, or click to browse</div>
+      <div class="drop-sub">Supports <b>JPG, PNG, GIF, WEBP</b> · stored in this browser tab</div>
+      <input type="file" id="fileInput" accept="image/*" multiple>
+    </div>
+  </section>
+
+  <section class="gallery-section" id="gallery">
+    <div class="gallery-head">
+      <h2>Your collection</h2>
+      <div class="gallery-actions">
+        <button class="btn" id="downloadAllBtn">Download all</button>
+        <button class="btn danger" id="clearAllBtn">Clear all</button>
+      </div>
+    </div>
+
+    <div id="emptyState" class="empty-state">
+      <div class="glyph">🔥</div>
+      <p>No photos yet. Add your first one above and it'll show up here, glowing in its own little frame.</p>
+    </div>
+
+    <div class="grid" id="grid"></div>
+  </section>
+</main>
+
+<footer>
+  Zeluvill · photos live only in this browser tab and clear on refresh · built with <b>♥ & embers</b>
+</footer>
+
+<script>
+  const dropzone = document.getElementById('dropzone');
+  const fileInput = document.getElementById('fileInput');
+  const grid = document.getElementById('grid');
+  const emptyState = document.getElementById('emptyState');
+  const photoCount = document.getElementById('photoCount');
+  const clearAllBtn = document.getElementById('clearAllBtn');
+  const downloadAllBtn = document.getElementById('downloadAllBtn');
+  const jumpUpload = document.getElementById('jumpUpload');
+
+  let photos = []; // { id, name, dataUrl }
+
+  jumpUpload.addEventListener('click', (e)=>{
+    e.preventDefault();
+    document.getElementById('gallery').scrollIntoView({behavior:'smooth'});
+  });
+
+  dropzone.addEventListener('click', ()=> fileInput.click());
+
+  ['dragenter','dragover'].forEach(evt=>{
+    dropzone.addEventListener(evt, (e)=>{
+      e.preventDefault();
+      dropzone.classList.add('drag');
+    });
+  });
+  ['dragleave','drop'].forEach(evt=>{
+    dropzone.addEventListener(evt, (e)=>{
+      e.preventDefault();
+      dropzone.classList.remove('drag');
+    });
+  });
+  dropzone.addEventListener('drop', (e)=>{
+    const files = e.dataTransfer.files;
+    handleFiles(files);
+  });
+  fileInput.addEventListener('change', (e)=>{
+    handleFiles(e.target.files);
+    fileInput.value = '';
+  });
+
+  function handleFiles(fileList){
+    const files = Array.from(fileList).filter(f => f.type.startsWith('image/'));
+    if(files.length === 0) return;
+    files.forEach(file=>{
+      const reader = new FileReader();
+      reader.onload = (e)=>{
+        const photo = { id: Date.now() + Math.random().toString(36).slice(2), name: file.name, dataUrl: e.target.result };
+        photos.push(photo);
+        renderGrid();
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  function renderGrid(){
+    photoCount.textContent = `${photos.length} photo${photos.length === 1 ? '' : 's'}`;
+    emptyState.style.display = photos.length ? 'none' : 'block';
+    grid.innerHTML = '';
+    photos.forEach((p, i)=>{
+      const card = document.createElement('div');
+      card.className = 'card';
+      card.style.animationDelay = (i * 0.03) + 's';
+      card.innerHTML = `
+        <img src="${p.dataUrl}" alt="${escapeHtml(p.name)}">
+        <div class="card-overlay">
+          <span class="card-name">${escapeHtml(p.name)}</span>
+          <div class="icon-btn" data-action="download" data-id="${p.id}" title="Download">↓</div>
+          <div class="icon-btn" data-action="delete" data-id="${p.id}" title="Delete">✕</div>
+        </div>
+      `;
+      grid.appendChild(card);
+    });
+  }
+
+  grid.addEventListener('click', (e)=>{
+    const btn = e.target.closest('.icon-btn');
+    if(!btn) return;
+    const id = btn.dataset.id;
+    const action = btn.dataset.action;
+    const photo = photos.find(p => p.id === id);
+    if(!photo) return;
+    if(action === 'delete'){
+      photos = photos.filter(p => p.id !== id);
+      renderGrid();
+    } else if(action === 'download'){
+      downloadPhoto(photo);
+    }
+  });
+
+  function downloadPhoto(photo){
+    const a = document.createElement('a');
+    a.href = photo.dataUrl;
+    a.download = photo.name || 'zeluvill-photo.jpg';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  }
+
+  downloadAllBtn.addEventListener('click', ()=>{
+    if(photos.length === 0) return;
+    photos.forEach((p, i)=> setTimeout(()=> downloadPhoto(p), i * 150));
+  });
+
+  clearAllBtn.addEventListener('click', ()=>{
+    if(photos.length === 0) return;
+    if(confirm('Clear all photos from your Zeluvill collection?')){
+      photos = [];
+      renderGrid();
+    }
+  });
+
+  function escapeHtml(str){
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  }
+
+  // ambient coal particles in dropzone
+  function spawnCoal(){
+    const coal = document.createElement('div');
+    coal.className = 'coal';
+    coal.style.left = (10 + Math.random() * 80) + '%';
+    coal.style.animationDuration = (2 + Math.random() * 1.5) + 's';
+    dropzone.appendChild(coal);
+    setTimeout(()=> coal.remove(), 4000);
+  }
+  setInterval(spawnCoal, 500);
+
+  renderGrid();
+</script>
+
+</body>
+  </html>
